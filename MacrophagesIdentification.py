@@ -129,6 +129,21 @@ def jaccardIndex(labeled, mask):
     print("Jaccard Index = "+str(ji))
     return ji
 
+def SorensenDiceCoeff (labeled, mask):
+    coeff = 0
+    vp = 0
+    vn = 0
+    for i in range(len(labeled)):
+        for j in range(len(labeled[i])):
+            if (labeled[i,j]==255 and mask[i,j]==255):
+                vp+=1
+            if (labeled[i,j]==0 and mask[i,j]==0):
+                vn+=1
+    coeff = 2*(vn+vp)/len(labeled)*len(labeled[1])
+    print("Sorensen-Dice Coefficient = "+str(coeff))
+    return coeff
+
+
 #Reading the Image from the local storage
 img = cv2.imread('macrofagos2V3.jpeg',1)
 
@@ -149,3 +164,4 @@ mask_old = cv2.imread('Mask_old.jpg',0)
 mask = cv2.imread('Mask.jpg',0)
 meanSquereError(labeled=mask,mask=mask_old)
 jaccardIndex(labeled=mask,mask=mask_old)
+SorensenDiceCoeff(labeled=mask,mask=mask_old)
