@@ -129,6 +129,7 @@ def jaccardIndex(labeled, mask):
     print("Jaccard Index = "+str(ji))
     return ji
 
+#Dice coefficient = 2 * (intersection of sets) / (size of set 1 + size of set 2)
 def SorensenDiceCoeff (labeled, mask):
     coeff = 0
     vp = 0
@@ -139,7 +140,7 @@ def SorensenDiceCoeff (labeled, mask):
                 vp+=1
             if (labeled[i,j]==0 and mask[i,j]==0):
                 vn+=1
-    coeff = 2*(vn+vp)/len(labeled)*len(labeled[1])
+    coeff = 2*(vn+vp)/2*len(labeled)*len(labeled[1])
     print("Sorensen-Dice Coefficient = "+str(coeff))
     return coeff
 
