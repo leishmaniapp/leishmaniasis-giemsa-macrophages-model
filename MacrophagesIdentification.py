@@ -58,6 +58,47 @@ def preProcessing_(img):
 
     return imgPre_
 
+#Cytoplasm Identification
+def cytoplasmIdentification (img):
+    myColorFinder = ColorFinder(False)
+    # Custom Color
+    #hsv(264, 23%, 88%)
+    hsvVals = {'hmin': 100, 'smin': 23, 'vmin': 88, 'hmax': 360, 'smax': 360, 'vmax': 360}
+    #Color Detection
+    imgColor, mask = myColorFinder.update(img,hsvVals)
+    cv2.imwrite('CytoplasmColored.jpg',imgColor)
+    imgColor2 = cv2.imread('Colored.jpg',1)
+    diff = cv2.subtract(imgColor, imgColor2)
+    cv2.imwrite('Cytoplasm.jpg',diff)
+
+    contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    cv2.drawContours(mask,contours, -1, color=(255,255,255),thickness=cv2.FILLED)
+    minArea = 7000
+    for i in range(len(contours)):
+        cnt = contours[i]
+        area = cv2.contourArea(cnt)
+        if area < minArea:
+            cv2.drawContours(mask,contours,i,color=(0,0,0),thickness=cv2.FILLED)
+    cv2.imwrite('CytoMask.jpg',mask)
+    coreMask = cv2.imread ('Mask.jpg',0)
+    diff2 = cv2.subtract(mask, coreMask)
+    kernel = np.ones((5,5),np.uint8)
+    diff2 = cv2.erode(diff2,kernel,iterations=1)
+    cv2.imwrite('CytoCore.jpg',diff2)
+
+    contours, hierarchy = cv2.findContours(diff2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    cv2.drawContours(diff2,contours, -1, color=(255,255,255),thickness=cv2.FILLED)
+    minArea = 50000
+    for i in range(len(contours)):
+        cnt = contours[i]
+        area = cv2.contourArea(cnt)
+        if area < minArea:
+            cv2.drawContours(diff2,contours,i,color=(0,0,0),thickness=cv2.FILLED)
+    cv2.imwrite('MacropMask.jpg',diff2)
+
+    return diff2
+
+
 #Processing Images Method 1
 def processImage(imgPre, img):
     print('\n'+"Method 1")
@@ -144,9 +185,8 @@ def SorensenDiceCoeff (labeled, mask):
     print("Sorensen-Dice Coefficient = "+str(coeff))
     return coeff
 
-
 #Reading the Image from the local storage
-img = cv2.imread('macrofagos2V3.jpeg',1)
+img = cv2.imread('L24_M1_C1.png',1)
 
 #Preprocessing the Image (method 1)
 imgPre = preProcessing(img)
@@ -154,15 +194,18 @@ imgPre = preProcessing(img)
 #Preprocessing the Image (method 2)
 imgPre_ = preProcessing_(img)
 
+#Cytoplasm Identification Test
+mask = cytoplasmIdentification(img)
+
 #Processing Images Pre. 1
-processImage(imgPre,img)
+processImage(mask,img)
 
 #Processing Images Pre. 2
-processImage_(imgPre_,img)
+processImage_(mask,img)
 
 #Metrics to measure masks
-mask_old = cv2.imread('Mask_old.jpg',0)
-mask = cv2.imread('Mask.jpg',0)
-meanSquereError(labeled=mask,mask=mask_old)
-jaccardIndex(labeled=mask,mask=mask_old)
-SorensenDiceCoeff(labeled=mask,mask=mask_old)
+#mask_old = cv2.imread('Mask_old.jpg',0)
+#mask = cv2.imread('Mask.jpg',0)
+#meanSquereError(labeled=mask,mask=mask)
+#jaccardIndex(labeled=mask,mask=mask)
+#SorensenDiceCoeff(labeled=mask,mask=mask)
