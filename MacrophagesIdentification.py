@@ -19,8 +19,8 @@ def coreIdentification(img):
         area = cv2.contourArea(cnt)
         if area < minArea:
             cv2.drawContours(mask,contours,i,color=(0,0,0),thickness=cv2.FILLED)
-    cv2.imwrite('Mask.jpg',mask)
-    cv2.imwrite('Colored.jpg',imgColor)
+    cv2.imwrite('CoreMask.jpg',mask)
+    cv2.imwrite('CoreColored.jpg',imgColor)
 
     return mask, imgColor
 
@@ -132,7 +132,7 @@ def SorensenDiceCoeff (labeled, mask):
     return coeff
 
 #Reading the Image from the local storage
-img = cv2.imread('L24_M1_C1.png',1)
+img = cv2.imread('L3_M2_C12.png',1)
 
 #Preprocess Image - Core Identification (Part 1)
 coreMask, coreImgColor = coreIdentification(img)
@@ -144,8 +144,6 @@ mask = cytoplasmIdentification(img, coreMask, coreImgColor)
 processImage(mask,img)
 
 #Metrics to measure masks
-#mask_old = cv2.imread('Mask_old.jpg',0)
-#mask = cv2.imread('Mask.jpg',0)
-#meanSquereError(labeled=mask,mask=mask)
-#jaccardIndex(labeled=mask,mask=mask)
-#SorensenDiceCoeff(labeled=mask,mask=mask)
+#meanSquereError(labeled=mask,mask=CoreMask)
+#jaccardIndex(labeled=mask,mask=CoreMask)
+#SorensenDiceCoeff(labeled=mask,mask=CoreMask)
