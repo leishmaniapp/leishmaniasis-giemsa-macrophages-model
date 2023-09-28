@@ -3,6 +3,20 @@ import cvzone
 import numpy as np
 from cvzone.ColorModule import ColorFinder
 
+#Calculate the distance between two given points
+def distanceCalculate(p1, p2):
+    #p1 and p2 in format (x1,y1) and (x2,y2) tuples
+    dis = ((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2) ** 0.5
+    return dis
+
+#Calculate de Center of a contour polygon
+def polygonCenter (contour):
+    peri = cv2.arcLength(contour, True)
+    approx = cv2.approxPolyDP(contour, 0.02 * peri, True)
+    x, y, w, h = cv2.boundingRect(approx)
+    cx, cy = x + (w // 2), y + (h // 2)
+    return cx, cy
+
 #Pre Process Method
 def coreIdentification(img):
     myColorFinder = ColorFinder(False)
@@ -22,8 +36,6 @@ def coreIdentification(img):
 
     #Checking if the contoures detected are actual cores
     mask2 = np.zeros((1944,2592 , 1), dtype = np.uint8)
-    #just for testing the funtion and its parameters
-    testImage = cv2.imread('MacropMask.jpg',0)
     cores = cv2.HoughCircles(mask, cv2.HOUGH_GRADIENT, 1, 160, param1=50, param2=5, minRadius=110, maxRadius=120)
     circlesTest = img.copy()
     cores = np.uint16(np.around(cores))
@@ -40,20 +52,17 @@ def coreIdentification(img):
             if 1 ==  cv2.pointPolygonTest(cnt,(x,y),False):
                 cv2.drawContours(mask2,contours,i,color=(255,255,255),thickness=cv2.FILLED)
     
-    #Update found cores
-    cores = cv2.HoughCircles(mask2, cv2.HOUGH_GRADIENT, 1, 160, param1=50, param2=5, minRadius=110, maxRadius=120)
-    circlesTest = img.copy()
-    cores = np.uint16(np.around(cores))
+    #Update found cores contours
+    contours, hierarchy1 = cv2.findContours(mask2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
     #Writing the image files
     cv2.imwrite('MaskTest.jpg',mask2)
     cv2.imwrite('CoreMask.jpg',mask)
     cv2.imwrite('CoreColored.jpg',imgColor)
 
-    return mask2, imgColor, cores
+    return mask2, imgColor, contours
 
 #Cytoplasm Identification
-
 def cytoplasmIdentification (img, coreMask, coreImgColor, cores):
     myColorFinder = ColorFinder(False)
     # Custom Color
@@ -76,7 +85,6 @@ def cytoplasmIdentification (img, coreMask, coreImgColor, cores):
     diff2 = cv2.subtract(mask, coreMask)
     kernel = np.ones((5,5),np.uint8)
     diff2 = cv2.erode(diff2,kernel,iterations=1)
-    cv2.imwrite('CytoCore.jpg',diff2)
 
     contours, hierarchy = cv2.findContours(diff2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     cv2.drawContours(diff2,contours, -1, color=(255,255,255),thickness=cv2.FILLED)
@@ -88,16 +96,26 @@ def cytoplasmIdentification (img, coreMask, coreImgColor, cores):
         if area < minArea:
             cv2.drawContours(diff2,contours,i,color=(0,0,0),thickness=cv2.FILLED)
 
+    kernel = np.ones((5,5),np.uint8)
+    diff2 = cv2.dilate(diff2,kernel,iterations=1)
+    contours, hierarchy = cv2.findContours(diff2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    cv2.imwrite('CytoCore.jpg',diff2)
+    
     #Blank mask
     mask2 = np.zeros((1944,2592 , 1), dtype = np.uint8)
     #Checking if the cytoplasm detected are atatch to a sutable core
     contours, hierarchy = cv2.findContours(diff2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
     #Getting rid of not false macrophages identified
-    for (x,y,r ) in cores[0,:]:
-        for i in range(len(contours)):
-            cnt = contours[i]
-            if 1 ==  cv2.pointPolygonTest(cnt,(x,y),False):
-                cv2.drawContours(mask2,contours,i,color=(255,255,255),thickness=cv2.FILLED)
+    for i in range(len(cores)):
+        #Cores center
+        cx, cy = polygonCenter(cores[i])
+        for j in range(len(contours)):
+            #Cytoplasm center
+            x, y = polygonCenter(contours[j])
+            if 200 > distanceCalculate((x,y),(cx,cy)):
+                cv2.drawContours(mask2,contours,j,color=(255,255,255),thickness=cv2.FILLED)
+                cv2.drawContours(mask2,cores,i,color=(255,255,255),thickness=cv2.FILLED)
 
     cv2.imwrite('MacropMask.jpg',mask2)
 
@@ -172,7 +190,7 @@ def SorensenDiceCoeff (labeled, mask):
     return coeff
 
 #Reading the Image from the local storage
-img = cv2.imread('L24_M1_C1.png',1)
+img = cv2.imread('L3_M2_C12.png',1)
 
 #Preprocess Image - Core Identification (Part 1)
 coreMask, coreImgColor , cores = coreIdentification(img)
