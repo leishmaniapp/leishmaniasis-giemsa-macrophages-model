@@ -1,6 +1,8 @@
+import time
 import cv2
 import cvzone
 import numpy as np
+import snake_opencv as cv
 from cvzone.ColorModule import ColorFinder
 
 #Calculate the distance between two given points
@@ -24,6 +26,7 @@ def coreIdentification(img):
     hsvVals = {'hmin': 70, 'smin': 180, 'vmin': 104, 'hmax': 255, 'smax': 255, 'vmax': 255}
     #Color Detection
     imgColor, mask = myColorFinder.update(img,hsvVals)
+
     #Pre Process
     contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     cv2.drawContours(mask,contours, -1, color=(255,255,255),thickness=cv2.FILLED)
@@ -36,7 +39,7 @@ def coreIdentification(img):
 
     #Checking if the contoures detected are actual cores
     mask2 = np.zeros((1944,2592 , 1), dtype = np.uint8)
-    cores = cv2.HoughCircles(mask, cv2.HOUGH_GRADIENT, 1, 160, param1=50, param2=5, minRadius=110, maxRadius=120)
+    cores = cv2.HoughCircles(mask, cv2.HOUGH_GRADIENT, 1, 160, param1=50, param2=6, minRadius=110, maxRadius=120)
     circlesTest = img.copy()
     cores = np.uint16(np.around(cores))
     for (x,y,r ) in cores[0,:]:
@@ -66,8 +69,8 @@ def coreIdentification(img):
 def cytoplasmIdentification (img, coreMask, coreImgColor, cores):
     myColorFinder = ColorFinder(False)
     # Custom Color
-    #hsv(264, 23%, 88%)
-    hsvVals = {'hmin': 100, 'smin': 23, 'vmin': 88, 'hmax': 360, 'smax': 360, 'vmax': 360}
+    #hsv(285, 20%, 86%)
+    hsvVals = {'hmin': 14, 'smin': 29, 'vmin': 60, 'hmax': 360, 'smax': 360, 'vmax': 360}
     #Color Detection
     imgColor, mask = myColorFinder.update(img,hsvVals)
     cv2.imwrite('CytoplasmColored.jpg',imgColor)
@@ -100,7 +103,7 @@ def cytoplasmIdentification (img, coreMask, coreImgColor, cores):
     diff2 = cv2.dilate(diff2,kernel,iterations=1)
     contours, hierarchy = cv2.findContours(diff2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     cv2.imwrite('CytoCore.jpg',diff2)
-    
+
     #Blank mask
     mask2 = np.zeros((1944,2592 , 1), dtype = np.uint8)
     #Checking if the cytoplasm detected are atatch to a sutable core
@@ -120,6 +123,45 @@ def cytoplasmIdentification (img, coreMask, coreImgColor, cores):
     cv2.imwrite('MacropMask.jpg',mask2)
 
     return mask2
+
+#Dynamic thresholding
+def dynamicThresholding ():
+    #Reding input image
+    img = cv2.imread('L19_M1_C2.png', cv2.IMREAD_GRAYSCALE)
+    #Apply threshold
+    ret1,th1 = cv2.threshold(img,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    #Invert mask
+    th1 = cv2.bitwise_not(th1)
+    #Find contours
+    contours, hierarchy = cv2.findContours(th1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    #Draw contours
+    cv2.drawContours(th1,contours, -1, color=(255,255,255),thickness=cv2.FILLED)
+    #Filter by area
+    minArea = 7000
+    for i in range(len(contours)):
+        cnt = contours[i]
+        area = cv2.contourArea(cnt)
+        if area < minArea:
+            cv2.drawContours(th1,contours,i,color=(0,0,0),thickness=cv2.FILLED)
+    #Update Contours
+    contours, hierarchy = cv2.findContours(th1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    #Hough Transform to check roundiness
+    cores = cv2.HoughCircles(th1, cv2.HOUGH_GRADIENT, 1, 160, param1=50, param2=6, minRadius=110, maxRadius=120)
+    cores = np.uint16(np.around(cores))
+    #Blank Mask
+    mask = np.zeros((1944,2592 , 1), dtype = np.uint8)
+    for (x,y,r ) in cores[0,:]:
+        for i in range(len(contours)):
+            cnt = contours[i]
+            if 1 ==  cv2.pointPolygonTest(cnt,(x,y),False):
+                cv2.drawContours(mask,contours,i,color=(255,255,255),thickness=cv2.FILLED)
+    #Update Contours
+    contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
+
+    cv2.imwrite('thresholding.jpg',mask)
+    th2 = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,11,2)
+    cv2.imwrite('adaptativeThresholding.jpg',th2)
 
 #Processing Images Method 1
 def processImage(imgPre, img):
@@ -190,7 +232,9 @@ def SorensenDiceCoeff (labeled, mask):
     return coeff
 
 #Reading the Image from the local storage
-img = cv2.imread('L3_M2_C12.png',1)
+start_time = time.time()
+#img = cv2.imread('L3_M2_C13.png',1)
+img = cv2.imread('L19_M1_C2.png',1)
 
 #Preprocess Image - Core Identification (Part 1)
 coreMask, coreImgColor , cores = coreIdentification(img)
@@ -201,7 +245,18 @@ mask = cytoplasmIdentification(img, coreMask, coreImgColor, cores)
 #Process Image
 processImage(mask,img)
 
+end_time = time.time()
+execution_time = end_time - start_time
+print("Segmentation Execution time:",execution_time)
+
+dynamicThresholding()
+
+#start_time = time.time()
 #Metrics to measure masks
-#meanSquereError(labeled=mask,mask=CoreMask)
-#jaccardIndex(labeled=mask,mask=CoreMask)111
-#SorensenDiceCoeff(labeled=mask,mask=CoreMask)
+#meanSquereError(labeled=mask,mask=mask)
+#jaccardIndex(labeled=mask,mask=mask)
+#SorensenDiceCoeff(labeled=mask,mask=mask)
+
+#end_time = time.time()
+#execution_time2 = end_time - start_time
+#print("Metrics Execution time:",execution_time2)
