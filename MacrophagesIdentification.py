@@ -2,7 +2,6 @@ import time
 import cv2
 import cvzone
 import numpy as np
-import snake_opencv as cv
 from cvzone.ColorModule import ColorFinder
 
 #Calculate the distance between two given points
@@ -38,7 +37,7 @@ def coreIdentification(img):
             cv2.drawContours(mask,contours,i,color=(0,0,0),thickness=cv2.FILLED)
 
     #Checking if the contoures detected are actual cores
-    mask2 = np.zeros((1944,2592 , 1), dtype = np.uint8)
+    mask2 = np.zeros((1944,1944 , 1), dtype = np.uint8)
     cores = cv2.HoughCircles(mask, cv2.HOUGH_GRADIENT, 1, 160, param1=50, param2=6, minRadius=110, maxRadius=120)
     circlesTest = img.copy()
     cores = np.uint16(np.around(cores))
@@ -105,7 +104,7 @@ def cytoplasmIdentification (img, coreMask, coreImgColor, cores):
     cv2.imwrite('CytoCore.jpg',diff2)
 
     #Blank mask
-    mask2 = np.zeros((1944,2592 , 1), dtype = np.uint8)
+    mask2 = np.zeros((1944,1944 , 1), dtype = np.uint8)
     #Checking if the cytoplasm detected are atatch to a sutable core
     contours, hierarchy = cv2.findContours(diff2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
@@ -149,7 +148,7 @@ def dynamicThresholding ():
     cores = cv2.HoughCircles(th1, cv2.HOUGH_GRADIENT, 1, 160, param1=50, param2=6, minRadius=110, maxRadius=120)
     cores = np.uint16(np.around(cores))
     #Blank Mask
-    mask = np.zeros((1944,2592 , 1), dtype = np.uint8)
+    mask = np.zeros((1944,1944 , 1), dtype = np.uint8)
     for (x,y,r ) in cores[0,:]:
         for i in range(len(contours)):
             cnt = contours[i]
@@ -162,6 +161,16 @@ def dynamicThresholding ():
     cv2.imwrite('thresholding.jpg',mask)
     th2 = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,11,2)
     cv2.imwrite('adaptativeThresholding.jpg',th2)
+
+def hls():
+    img = cv2.imread('L19_M1_C2.png', 1)
+    cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+    Lchannel = img[:,:,1]
+    mask = cv2.inRange(Lchannel,250,255)
+    res = cv2.bitwise_and(img,img,mask=mask)
+    mask = cv2.inRange(img, np.array([0,250,0]), np.array([255,255,255]))
+    cv2.imwrite('hls.jpg',mask)
+
 
 #Processing Images Method 1
 def processImage(imgPre, img):
@@ -250,6 +259,7 @@ execution_time = end_time - start_time
 print("Segmentation Execution time:",execution_time)
 
 dynamicThresholding()
+hls()
 
 #start_time = time.time()
 #Metrics to measure masks

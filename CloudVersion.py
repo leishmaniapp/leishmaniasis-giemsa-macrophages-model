@@ -34,7 +34,7 @@ def coreIdentification(img):
             cv2.drawContours(mask,contours,i,color=(0,0,0),thickness=cv2.FILLED)
 
     #Checking if the contoures detected are actual cores
-    mask2 = np.zeros((1944,2592 , 1), dtype = np.uint8)
+    mask2 = np.zeros((1944,1944 , 1), dtype = np.uint8)
     cores = cv2.HoughCircles(mask, cv2.HOUGH_GRADIENT, 1, 160, param1=50, param2=6, minRadius=110, maxRadius=120)
     circlesTest = img.copy()
     cores = np.uint16(np.around(cores))
@@ -100,7 +100,7 @@ def cytoplasmIdentification (img, coreMask, cores):
     contours, hierarchy = cv2.findContours(diff2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
     #Blank mask
-    mask2 = np.zeros((1944,2592 , 1), dtype = np.uint8)
+    mask2 = np.zeros((1944,1944 , 1), dtype = np.uint8)
     #Checking if the cytoplasm detected are atatch to a sutable core
     contours, hierarchy = cv2.findContours(diff2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
@@ -142,7 +142,7 @@ def dynamicThresholding (img):
     cores = cv2.HoughCircles(th1, cv2.HOUGH_GRADIENT, 1, 160, param1=50, param2=6, minRadius=110, maxRadius=120)
     cores = np.uint16(np.around(cores))
     #Blank Mask
-    mask = np.zeros((1944,2592 , 1), dtype = np.uint8)
+    mask = np.zeros((1944,1944 , 1), dtype = np.uint8)
     for (x,y,r ) in cores[0,:]:
         for i in range(len(contours)):
             cnt = contours[i]
