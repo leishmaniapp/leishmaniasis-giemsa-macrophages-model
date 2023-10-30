@@ -40,19 +40,21 @@ def coreIdentification(img):
     mask2 = np.zeros((1944,1944 , 1), dtype = np.uint8)
     cores = cv2.HoughCircles(mask, cv2.HOUGH_GRADIENT, 1, 160, param1=50, param2=6, minRadius=110, maxRadius=120)
     circlesTest = img.copy()
-    cores = np.uint16(np.around(cores))
-    for (x,y,r ) in cores[0,:]:
-        cv2.circle(circlesTest, (x,y), r,(0,0,255),3)
-        cv2.circle(circlesTest, (x,y), 2,(0,0,255),3)
+    if cores is not None:
+        cores = np.uint16(np.around(cores))
+        for (x,y,r ) in cores[0,:]:
+            cv2.circle(circlesTest, (x,y), r,(0,0,255),3)
+            cv2.circle(circlesTest, (x,y), 2,(0,0,255),3)
 
     cv2.imwrite('CircleTest.jpg',circlesTest)
     #Getting rid of the not rounded contours
     contours, hierarchy1 = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-    for (x,y,r ) in cores[0,:]:
-        for i in range(len(contours)):
-            cnt = contours[i]
-            if 1 ==  cv2.pointPolygonTest(cnt,(x,y),False):
-                cv2.drawContours(mask2,contours,i,color=(255,255,255),thickness=cv2.FILLED)
+    if cores is not None:
+        for (x,y,r ) in cores[0,:]:
+            for i in range(len(contours)):
+                cnt = contours[i]
+                if 1 ==  cv2.pointPolygonTest(cnt,(x,y),False):
+                    cv2.drawContours(mask2,contours,i,color=(255,255,255),thickness=cv2.FILLED)
     
     #Update found cores contours
     contours, hierarchy1 = cv2.findContours(mask2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
@@ -243,7 +245,7 @@ def SorensenDiceCoeff (labeled, mask):
 #Reading the Image from the local storage
 start_time = time.time()
 #img = cv2.imread('L3_M2_C13.png',1)
-img = cv2.imread('L19_M1_C2.png',1)
+img = cv2.imread('F1.png',1)
 
 #Preprocess Image - Core Identification (Part 1)
 coreMask, coreImgColor , cores = coreIdentification(img)
