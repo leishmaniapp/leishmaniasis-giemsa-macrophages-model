@@ -2,7 +2,6 @@ import time
 import cv2
 import cvzone
 import numpy as np
-import snake_opencv as cv
 from cvzone.ColorModule import ColorFinder
 
 #Calculate the distance between two given points
