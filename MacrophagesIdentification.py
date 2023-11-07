@@ -71,7 +71,7 @@ def cytoplasmIdentification (img, coreMask, coreImgColor, cores):
     myColorFinder = ColorFinder(False)
     # Custom Color
     #hsv(285, 20%, 86%)
-    hsvVals = {'hmin': 14, 'smin': 29, 'vmin': 60, 'hmax': 360, 'smax': 360, 'vmax': 360}
+    hsvVals = {'hmin': 14, 'smin': 29, 'vmin': 60, 'hmax': 360, 'smax': 255, 'vmax': 255}
     #Color Detection
     imgColor, mask = myColorFinder.update(img,hsvVals)
     cv2.imwrite('CytoplasmColored.jpg',imgColor)
@@ -117,63 +117,15 @@ def cytoplasmIdentification (img, coreMask, coreImgColor, cores):
         for j in range(len(contours)):
             #Cytoplasm center
             x, y = polygonCenter(contours[j])
-            if 200 > distanceCalculate((x,y),(cx,cy)):
+            print(distanceCalculate((x,y),(cx,cy)))
+            if 450 > distanceCalculate((x,y),(cx,cy)):
                 cv2.drawContours(mask2,contours,j,color=(255,255,255),thickness=cv2.FILLED)
                 cv2.drawContours(mask2,cores,i,color=(255,255,255),thickness=cv2.FILLED)
 
     cv2.imwrite('MacropMask.jpg',mask2)
 
     return mask2
-
-#Dynamic thresholding
-def dynamicThresholding ():
-    #Reding input image
-    img = cv2.imread('L19_M1_C2.png', cv2.IMREAD_GRAYSCALE)
-    #Apply threshold
-    ret1,th1 = cv2.threshold(img,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-    #Invert mask
-    th1 = cv2.bitwise_not(th1)
-    #Find contours
-    contours, hierarchy = cv2.findContours(th1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-    #Draw contours
-    cv2.drawContours(th1,contours, -1, color=(255,255,255),thickness=cv2.FILLED)
-    #Filter by area
-    minArea = 7000
-    for i in range(len(contours)):
-        cnt = contours[i]
-        area = cv2.contourArea(cnt)
-        if area < minArea:
-            cv2.drawContours(th1,contours,i,color=(0,0,0),thickness=cv2.FILLED)
-    #Update Contours
-    contours, hierarchy = cv2.findContours(th1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-    #Hough Transform to check roundiness
-    cores = cv2.HoughCircles(th1, cv2.HOUGH_GRADIENT, 1, 160, param1=50, param2=6, minRadius=110, maxRadius=120)
-    cores = np.uint16(np.around(cores))
-    #Blank Mask
-    mask = np.zeros((1944,1944 , 1), dtype = np.uint8)
-    for (x,y,r ) in cores[0,:]:
-        for i in range(len(contours)):
-            cnt = contours[i]
-            if 1 ==  cv2.pointPolygonTest(cnt,(x,y),False):
-                cv2.drawContours(mask,contours,i,color=(255,255,255),thickness=cv2.FILLED)
-    #Update Contours
-    contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-
-
-    cv2.imwrite('thresholding.jpg',mask)
-    th2 = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,11,2)
-    cv2.imwrite('adaptativeThresholding.jpg',th2)
-
-def hls():
-    img = cv2.imread('L19_M1_C2.png', 1)
-    cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
-    Lchannel = img[:,:,1]
-    mask = cv2.inRange(Lchannel,250,255)
-    res = cv2.bitwise_and(img,img,mask=mask)
-    mask = cv2.inRange(img, np.array([0,250,0]), np.array([255,255,255]))
-    cv2.imwrite('hls.jpg',mask)
-
-
+    
 #Processing Images Method 1
 def processImage(imgPre, img):
     print('\n'+"Method 1")
@@ -221,7 +173,7 @@ def jaccardIndex(labeled, mask):
                 fn+=1
     print("VP = "+str(vp)+'\n'+"VN = "+str(vn)+'\n'+"FP = "+str(fp)+'\n'+"FN = "+str(fn))
     if((vp+fp+fn)==0):
-        print("Jaccard Index = "+str(ji))
+        print("Jaccard Index = 0")
         return 1
     ji = vp/(vp+fp+fn)
     print("Jaccard Index = "+str(ji))
@@ -232,20 +184,18 @@ def SorensenDiceCoeff (labeled, mask):
     coeff = 0
     vp = 0
     vn = 0
-    for i in range(len(labeled)):
-        for j in range(len(labeled[i])):
-            if (labeled[i,j]==255 and mask[i,j]==255):
-                vp+=1
-            if (labeled[i,j]==0 and mask[i,j]==0):
-                vn+=1
-    coeff = 2*(vn+vp)/2*len(labeled)*len(labeled[1])
+    intersection = np.sum(mask[labeled==255])*2.0
+    coeff= intersection/(np.sum(mask)+np.sum(labeled))
+    
     print("Sorensen-Dice Coefficient = "+str(coeff))
+    
     return coeff
 
 #Reading the Image from the local storage
+path = 'L3_M2_C13.png'
+
 start_time = time.time()
-#img = cv2.imread('L3_M2_C13.png',1)
-img = cv2.imread('F1.png',1)
+img = cv2.imread(path,1)
 
 #Preprocess Image - Core Identification (Part 1)
 coreMask, coreImgColor , cores = coreIdentification(img)
@@ -263,11 +213,17 @@ print("Segmentation Execution time:",execution_time)
 dynamicThresholding()
 hls()
 
+
+
 #start_time = time.time()
+#maskL=cv2.imread('Masks\\'+path,0)
+
+#maskM=cv2.imread("CytoCore.jpg", 0)
+
 #Metrics to measure masks
-#meanSquereError(labeled=mask,mask=mask)
-#jaccardIndex(labeled=mask,mask=mask)
-#SorensenDiceCoeff(labeled=mask,mask=mask)
+#meanSquereError(labeled=maskL,mask=maskM)
+#jaccardIndex(labeled=maskL,mask=maskM)
+#SorensenDiceCoeff(labeled=maskL,mask=maskM)
 
 #end_time = time.time()
 #execution_time2 = end_time - start_time

@@ -1,6 +1,7 @@
 import cv2
 import cvzone
 import numpy as np
+import time
 from cvzone.ColorModule import ColorFinder
 
 #Calculate the distance between two given points
@@ -18,38 +19,38 @@ def polygonCenter (contour):
     return cx, cy
 
 #Pre Process Method
-def coreIdentification(img):
-    myColorFinder = ColorFinder(False)
-    # Custom Color
-    hsvVals = {'hmin': 70, 'smin': 180, 'vmin': 104, 'hmax': 255, 'smax': 255, 'vmax': 255}
-    #Color Detection
-    imgColor, mask = myColorFinder.update(img,hsvVals)
-
+def coreIdentification(BRGimg):
+    #Reding input image
+    GRAYimg = cv2.cvtColor(BRGimg, cv2.COLOR_BGR2GRAY)
+    #Apply threshold
+    ret1,th1 = cv2.threshold(GRAYimg,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    #Invert mask
+    th1 = cv2.bitwise_not(th1)
     #Pre Process
-    contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-    cv2.drawContours(mask,contours, -1, color=(255,255,255),thickness=cv2.FILLED)
+    contours, hierarchy = cv2.findContours(th1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    cv2.drawContours(th1,contours, -1, color=(255,255,255),thickness=cv2.FILLED)
     minArea = 7000
     for i in range(len(contours)):
         cnt = contours[i]
         area = cv2.contourArea(cnt)
         if area < minArea:
-            cv2.drawContours(mask,contours,i,color=(0,0,0),thickness=cv2.FILLED)
+            cv2.drawContours(th1,contours,i,color=(0,0,0),thickness=cv2.FILLED)
 
     #Checking if the contoures detected are actual cores
     mask2 = np.zeros((1944,1944 , 1), dtype = np.uint8)
-    cores = cv2.HoughCircles(mask, cv2.HOUGH_GRADIENT, 1, 160, param1=50, param2=6, minRadius=110, maxRadius=120)
-    circlesTest = img.copy()
-    if cores is not None:
-        cores = np.uint16(np.around(cores))
-        for (x,y,r ) in cores[0,:]:
+    circles = cv2.HoughCircles(th1, cv2.HOUGH_GRADIENT, 1, 160, param1=50, param2=6, minRadius=110, maxRadius=160)
+    circlesTest = BRGimg.copy()
+    if circles is not None:
+        circles = np.uint16(np.around(circles))
+        for (x,y,r ) in circles[0,:]:
             cv2.circle(circlesTest, (x,y), r,(0,0,255),3)
             cv2.circle(circlesTest, (x,y), 2,(0,0,255),3)
 
     cv2.imwrite('CircleTest.jpg',circlesTest)
     #Getting rid of the not rounded contours
-    contours, hierarchy1 = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-    if cores is not None:
-        for (x,y,r ) in cores[0,:]:
+    contours, hierarchy1 = cv2.findContours(th1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    if circles is not None:
+        for (x,y,r ) in circles[0,:]:
             for i in range(len(contours)):
                 cnt = contours[i]
                 if 1 ==  cv2.pointPolygonTest(cnt,(x,y),False):
@@ -57,46 +58,46 @@ def coreIdentification(img):
     
     #Update found cores contours
     contours, hierarchy1 = cv2.findContours(mask2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-
-    return mask2, imgColor, contours
+    
+    cytoplasmIdentification (BRGimg, mask2, contours)
 
 #Cytoplasm Identification
-def cytoplasmIdentification (img, coreMask, coreImgColor, cores):
+def cytoplasmIdentification (BRGimg, coreMask, cores):
     myColorFinder = ColorFinder(False)
     # Custom Color
-    #hsv(285, 20%, 86%)
-    hsvVals = {'hmin': 14, 'smin': 29, 'vmin': 60, 'hmax': 360, 'smax': 360, 'vmax': 360}
+    hsvVals = {'hmin': 14, 'smin': 29, 'vmin': 60, 'hmax': 180, 'smax': 255, 'vmax': 255}
     #Color Detection
-    imgColor, mask = myColorFinder.update(img,hsvVals)
-
-    diff = cv2.subtract(imgColor, coreImgColor)
-
+    imgColor, mask = myColorFinder.update(BRGimg,hsvVals)
 
     contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     cv2.drawContours(mask,contours, -1, color=(255,255,255),thickness=cv2.FILLED)
+    
     minArea = 7000
     for i in range(len(contours)):
         cnt = contours[i]
         area = cv2.contourArea(cnt)
         if area < minArea:
             cv2.drawContours(mask,contours,i,color=(0,0,0),thickness=cv2.FILLED)
-    diff2 = cv2.subtract(mask, coreMask)
+    #diff2 = cv2.subtract(mask, coreMask)
+    diff2=mask
     kernel = np.ones((5,5),np.uint8)
     diff2 = cv2.erode(diff2,kernel,iterations=1)
 
     contours, hierarchy = cv2.findContours(diff2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-    cv2.drawContours(diff2,contours, -1, color=(255,255,255),thickness=cv2.FILLED)
-    minArea = 50000
 
+    cv2.drawContours(diff2,contours, -1, color=(255,255,255),thickness=cv2.FILLED)
+    minArea = 70000
     for i in range(len(contours)):
         cnt = contours[i]
         area = cv2.contourArea(cnt)
         if area < minArea:
             cv2.drawContours(diff2,contours,i,color=(0,0,0),thickness=cv2.FILLED)
-
+    #UpdateContours
+    contours, hierarchy = cv2.findContours(diff2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     kernel = np.ones((5,5),np.uint8)
     diff2 = cv2.dilate(diff2,kernel,iterations=1)
     contours, hierarchy = cv2.findContours(diff2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    cv2.imwrite('CytoCore.jpg',diff2)
 
     #Blank mask
     mask2 = np.zeros((1944,1944 , 1), dtype = np.uint8)
@@ -113,51 +114,16 @@ def cytoplasmIdentification (img, coreMask, coreImgColor, cores):
             if 200 > distanceCalculate((x,y),(cx,cy)):
                 cv2.drawContours(mask2,contours,j,color=(255,255,255),thickness=cv2.FILLED)
                 cv2.drawContours(mask2,cores,i,color=(255,255,255),thickness=cv2.FILLED)
+    
+    cv2.imwrite('MacropMask.jpg',mask2)
+    
+    processImage(mask2,BRGimg)
 
-    return mask2
-
-#Dynamic thresholding
-def dynamicThresholding ():
-    #Reding input image
-    img = cv2.imread('L19_M1_C2.png', cv2.IMREAD_GRAYSCALE)
-    #Apply threshold
-    ret1,th1 = cv2.threshold(img,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-    #Invert mask
-    th1 = cv2.bitwise_not(th1)
-    #Find contours
-    contours, hierarchy = cv2.findContours(th1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-    #Draw contours
-    cv2.drawContours(th1,contours, -1, color=(255,255,255),thickness=cv2.FILLED)
-    #Filter by area
-    minArea = 7000
-    for i in range(len(contours)):
-        cnt = contours[i]
-        area = cv2.contourArea(cnt)
-        if area < minArea:
-            cv2.drawContours(th1,contours,i,color=(0,0,0),thickness=cv2.FILLED)
-    #Update Contours
-    contours, hierarchy = cv2.findContours(th1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-    #Hough Transform to check roundiness
-    cores = cv2.HoughCircles(th1, cv2.HOUGH_GRADIENT, 1, 160, param1=50, param2=6, minRadius=110, maxRadius=120)
-    cores = np.uint16(np.around(cores))
-    #Blank Mask
-    mask = np.zeros((1944,1944 , 1), dtype = np.uint8)
-    for (x,y,r ) in cores[0,:]:
-        for i in range(len(contours)):
-            cnt = contours[i]
-            if 1 ==  cv2.pointPolygonTest(cnt,(x,y),False):
-                cv2.drawContours(mask,contours,i,color=(255,255,255),thickness=cv2.FILLED)
-    #Update Contours
-    contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-
-    th2 = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,11,2)
-
-
-#Processing Images Method 1
-def processImage(imgPre, img):
-    print('\n'+"Method 1")
+#Processing Images Method 2
+def processImage(imgPre, BRGimg):
+    print('\n'+"Macrophages Identification V2")
     #Finfing the Contours
-    imgContours, conFound =  cvzone.findContours(img,imgPre,minArea=7000)
+    imgContours, conFound =  cvzone.findContours(BRGimg,imgPre,minArea=7000)
     #Defining what will be a macophag for us
     macrophages = 0
     if conFound:
@@ -171,13 +137,19 @@ def processImage(imgPre, img):
     print("total detected: "+str(macrophages))
     cv2.imwrite('Contours.jpg',imgContours)
 
-img = cv2.imread('F1.png',1)
+path = 'L3_M2_C12.png'
+img = cv2.imread(path,1)
+coreIdentification(img)
 
-#Preprocess Image - Core Identification (Part 1)
-coreMask, coreImgColor , cores = coreIdentification(img)
+#Bien Detectadas
+#L3_M2_C12.png, L3_M2_C13.png, L5_M2_C1.png, L8_M1_C4.png, L9_M2_C3.png, L9_M2_C4.png, L19_M1_C4.png, L19_M2_C3.png, L28_M1_C4.png, L28_M1_C15.png
+#hsvVals = {'hmin': 14, 'smin': 29, 'vmin': 60, 'hmax': 180, 'smax': 255, 'vmax': 255}
 
-#Preprocess Image - Cytoplasm Identification (Part2)
-mask = cytoplasmIdentification(img, coreMask, coreImgColor, cores)
+#L5_M1_C1.png, L17_M2_C2.png, L21_M2_C2.png
+#No Detecta
 
-#Process Image
-processImage(mask,img)
+#L19_M1_C1.png, L19_M1_C2.png, L24_M1_C1.png
+#Detecta Incompleto
+
+#L5_M1_C5.png. L19_M1_C5.png, L25_M1_C1.png, L28_M1_C11.png
+#Detecta Mal

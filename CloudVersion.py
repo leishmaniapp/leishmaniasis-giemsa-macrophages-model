@@ -171,8 +171,8 @@ def processImage(imgPre, img):
 
 #Reading the Image from the local storage
 start_time = time.time()
-#img = cv2.imread('L3_M2_C13.png',1)
-img = cv2.imread('F1.png',1)
+img = cv2.imread('L19_M1_C2.png',1)
+#img = cv2.imread('F1.png',1)
 
 #Preprocess Image - Core Identification (Part 1)
 coreMask, cores = coreIdentification(img)
