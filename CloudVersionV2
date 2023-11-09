@@ -39,14 +39,7 @@ def coreIdentification(BRGimg):
     #Checking if the contoures detected are actual cores
     mask2 = np.zeros((1944,1944 , 1), dtype = np.uint8)
     circles = cv2.HoughCircles(th1, cv2.HOUGH_GRADIENT, 1, 160, param1=50, param2=6, minRadius=110, maxRadius=160)
-    circlesTest = BRGimg.copy()
-    if circles is not None:
-        circles = np.uint16(np.around(circles))
-        for (x,y,r ) in circles[0,:]:
-            cv2.circle(circlesTest, (x,y), r,(0,0,255),3)
-            cv2.circle(circlesTest, (x,y), 2,(0,0,255),3)
 
-    cv2.imwrite('CircleTest.jpg',circlesTest)
     #Getting rid of the not rounded contours
     contours, hierarchy1 = cv2.findContours(th1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     if circles is not None:
@@ -97,7 +90,6 @@ def cytoplasmIdentification (BRGimg, coreMask, cores):
     kernel = np.ones((5,5),np.uint8)
     diff2 = cv2.dilate(diff2,kernel,iterations=1)
     contours, hierarchy = cv2.findContours(diff2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-    cv2.imwrite('CytoCore.jpg',diff2)
 
     #Blank mask
     mask2 = np.zeros((1944,1944 , 1), dtype = np.uint8)
@@ -121,7 +113,7 @@ def cytoplasmIdentification (BRGimg, coreMask, cores):
 
 #Processing Images Method 2
 def processImage(imgPre, BRGimg):
-    print('\n'+"Macrophages Identification V2")
+    print('\n'+"Macrophages Identification V2.1")
     #Finfing the Contours
     imgContours, conFound =  cvzone.findContours(BRGimg,imgPre,minArea=7000)
     #Defining what will be a macophag for us
@@ -137,7 +129,7 @@ def processImage(imgPre, BRGimg):
     print("total detected: "+str(macrophages))
     cv2.imwrite('Contours.jpg',imgContours)
 
-path = 'L3_M2_C12.png'
+path = 'L5_M2_C1.png'
 img = cv2.imread(path,1)
 coreIdentification(img)
 
