@@ -18,12 +18,12 @@ logger.setLevel(logging.DEBUG)
 
 # Parse the required command-line arguments
 parser = argparse.ArgumentParser(description='A simple program to demonstrate argparse usage.')
-parser.add_argument('-I', type=str, help='Input image absolute or relative path', required=True)
-parser.add_argument('-O', type=str, help='(Unused) this model does not accept output', required=False)
+parser.add_argument('--alef-in', dest="input", type=str, help='Input image absolute or relative path', required=True)
+parser.add_argument('--alef-out', dest="output", type=str, help='(Unused) this model does not accept output', required=False)
 
 # Parse the arguments
 args = parser.parse_args()
-filepath = args.I
+filepath = args.input
 
 # Import the analysis model 'analyze' function
 from model import analyze
@@ -37,6 +37,7 @@ try:
     # Print the results in ALEF format
     print(f'{ELEMENT_NAME}=', end='')
     
+    # Get elements as ALEF output
     for element in results:
         print(element["x"], end=':')
         print(element["y"], end=',')
