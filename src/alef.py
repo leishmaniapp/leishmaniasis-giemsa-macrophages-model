@@ -17,7 +17,7 @@ logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
 # Parse the required command-line arguments
-parser = argparse.ArgumentParser(description='A simple program to demonstrate argparse usage.')
+parser = argparse.ArgumentParser(description='Leishmaniasis macrophages identification analysis model')
 parser.add_argument('--alef-in', dest="input", type=str, help='Input image absolute or relative path', required=True)
 parser.add_argument('--alef-out', dest="output", type=str, help='(Unused) this model does not accept output', required=False)
 
