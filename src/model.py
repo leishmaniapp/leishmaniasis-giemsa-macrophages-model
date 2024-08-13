@@ -11,6 +11,11 @@ REQUIRED_RESOLUTION = 1944
     Both width and height MUST be this exact length in pixels
 """
 
+ELEMENT_NAME = "macrophage"
+"""
+    Name of the element to diagnose
+"""
+
 # Get an already created logger
 logger = logging.getLogger()
 
@@ -188,7 +193,7 @@ def cytoplasmIdentification(image, nucleiMask, nucleiColor, nucleiContours) -> c
     return mask
 
 
-def processContours(processedImage: cv2.typing.MatLike, rawImage: cv2.typing.MatLike) -> list[dict[str, int]]:
+def processContours(processedImage: cv2.typing.MatLike, rawImage: cv2.typing.MatLike) -> list:
     """
     Gather the contour data ('x' and 'y' coordinates of the center of mass and area) of the identified macrophages
 
@@ -227,7 +232,7 @@ def processContours(processedImage: cv2.typing.MatLike, rawImage: cv2.typing.Mat
     return results
 
 
-def analyze(filepath: str) -> list[dict[str, int]]:
+def analyze(filepath: str) -> dict:
     """
     Start the analysis of an image
 
@@ -235,7 +240,8 @@ def analyze(filepath: str) -> list[dict[str, int]]:
         filepath (str): Path (can be either absolute or relative) to the image file
 
     Returns:
-        list[dict[str, int]]: List with each macrophage information
+        dict[str, list[tuple[int, int]]]: A dictionary with each element found and a
+        list of tuples with the coordinates of each instance
     """
 
     # Read the image file from path
@@ -248,8 +254,8 @@ def analyze(filepath: str) -> list[dict[str, int]]:
     # Check if image size matches
     width, height, _ = img.shape
     if width != REQUIRED_RESOLUTION or height != REQUIRED_RESOLUTION:
-        raise ValueError(f"image shape ({width}x{
-                         height}) does not match required resolution of ({REQUIRED_RESOLUTION})")
+        raise ValueError(
+            f"image shape({width}x{height}) does not match required resolution of({REQUIRED_RESOLUTION})")
 
     # 1. Nuclei identification
     nucleiMask, nucleiColor, nucleiContours = nucleusIdentification(img)
@@ -261,4 +267,10 @@ def analyze(filepath: str) -> list[dict[str, int]]:
     logger.info("cytoplasm identification successfull")
 
     # 3. Process image and gather contour data
-    return processContours(cytoplasmMask, img)
+    results: list = processContours(cytoplasmMask, img)
+
+    # 4. Transform into tuples
+    results = list(map(lambda it: (it["x"], it["y"]), results))
+
+    # 5. Put the element in the dictionary
+    return {ELEMENT_NAME: results}
