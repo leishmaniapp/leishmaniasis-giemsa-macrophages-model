@@ -1,3 +1,12 @@
+"""
+leishmaniasis.giemsa.macrophages
+Version 1.1
+
+Macrophage detection in Leishmaniasis samples with Giemsa tinction
+Analysis model built by _Nicolás Pérez Fonseca (nicolasperezfonseca1@gmail.com)_ in 2023.
+Code cleanup and ALEF adaptation by _Angel David Talero (angelgotalero@outlook.com)_ in 2024.
+"""
+
 import logging
 import numpy as np
 from cvzone.ColorModule import ColorFinder
@@ -20,7 +29,7 @@ ELEMENT_NAME = "macrophage"
 logger = logging.getLogger()
 
 
-def euclideanDistanceBetween(p1: tuple, p2: tuple):
+def euclideanDistanceBetween(p1, p2):
     """
     Calculate the distance between two given points in euclidean space
     """
@@ -105,7 +114,7 @@ def nucleusIdentification(image):
     return mask2, imgColor, contours
 
 
-def cytoplasmIdentification(image, nucleiMask, nucleiColor, nucleiContours) -> cv2.typing.MatLike:
+def cytoplasmIdentification(image, nucleiMask, nucleiColor, nucleiContours):
     """
     Identify the macrophages cythoplasm in the provided image
 
@@ -193,7 +202,7 @@ def cytoplasmIdentification(image, nucleiMask, nucleiColor, nucleiContours) -> c
     return mask
 
 
-def processContours(processedImage: cv2.typing.MatLike, rawImage: cv2.typing.MatLike) -> list:
+def processContours(processedImage, rawImage):
     """
     Gather the contour data ('x' and 'y' coordinates of the center of mass and area) of the identified macrophages
 
@@ -232,7 +241,7 @@ def processContours(processedImage: cv2.typing.MatLike, rawImage: cv2.typing.Mat
     return results
 
 
-def analyze(filepath: str) -> dict:
+def analyze(filepath):
     """
     Start the analysis of an image
 
