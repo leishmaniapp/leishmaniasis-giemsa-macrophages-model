@@ -43,7 +43,7 @@ try:
         for coords in results:
             print(coords[0], end=':')
             print(coords[1], end=',')
-        
+
         print(f';', end='')
 
     print()

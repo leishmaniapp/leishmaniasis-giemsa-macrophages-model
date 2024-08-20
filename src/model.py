@@ -242,6 +242,7 @@ def processContours(processedImage, rawImage):
 
 
 def analyze(filepath):
+    # type: (str) -> dict[str, list[tuple[int, int]]]
     """
     Start the analysis of an image
 
@@ -250,7 +251,7 @@ def analyze(filepath):
 
     Returns:
         dict[str, list[tuple[int, int]]]: A dictionary with each element found and a
-        list of tuples with the coordinates of each instance
+        list of tuples with the coordinates (x,y) of each instance
     """
 
     # Read the image file from path
