@@ -233,8 +233,9 @@ def processContours(processedImage, rawImage):
             results.append({
                 "x": center[0],
                 "y": center[1],
-                "area": area,
-                "perimeter": peri
+                # Values at 0 indicate center of mass
+                "w": 0,
+                "h": 0
             })
 
     # Return the results
@@ -242,7 +243,7 @@ def processContours(processedImage, rawImage):
 
 
 def analyze(filepath):
-    # type: (str) -> dict[str, list[tuple[int, int]]]
+    # type: (str) -> dict[str, list[dict[str, int]]]
     """
     Start the analysis of an image
 
@@ -278,9 +279,6 @@ def analyze(filepath):
 
     # 3. Process image and gather contour data
     results: list = processContours(cytoplasmMask, img)
-
-    # 4. Transform into tuples
-    results = list(map(lambda it: (it["x"], it["y"]), results))
 
     # 5. Put the element in the dictionary
     return {ELEMENT_NAME: results}
