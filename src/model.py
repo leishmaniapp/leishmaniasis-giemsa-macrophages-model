@@ -1,6 +1,6 @@
 """
 leishmaniasis.giemsa.macrophages
-Version 1.1
+Version 2.0
 
 Macrophage detection in Leishmaniasis samples with Giemsa tinction
 Analysis model built by _Nicolás Pérez Fonseca (nicolasperezfonseca1@gmail.com)_ in 2023.
