@@ -33,7 +33,6 @@ def main():
 
     parser.add_argument(
         '--alef-out',
-        '-o',
         dest="output",
         type=str,
         help='(Unused) this model does not accept output',
