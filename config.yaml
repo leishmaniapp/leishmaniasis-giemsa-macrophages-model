@@ -1,4 +1,0 @@
-disease: leishmaniasis.giemsa.macrophages
-exec:
-  - path: "/usr/local/bin/python"
-    args: ["src/alef.py"]
